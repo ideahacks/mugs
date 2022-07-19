@@ -1,5 +1,6 @@
 {
 	"devDependencies": {
+		"@google/clasp": "2.4.1",
 		"eslint": "^8.20.0",
 		"eslint-config-prettier": "^8.5.0",
 		"eslint-config-standard": "^17.0.0",
