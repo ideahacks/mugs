@@ -1,0 +1,11 @@
+# Editor
+.vscode
+
+# macOS
+.DS_Store
+
+# clasp
+.clasp.json
+
+# Node
+node_modules
