@@ -197,12 +197,12 @@ function insertParts() {
 		dataSource: clusterName,
 	}
 
-	  const options = {
+	const options = {
 		method: "post",
 		contentType: "application/json",
 		payload: JSON.stringify(payload),
 		headers: { "api-key": apiKey },
-	  }
+	}
   
 	// make sure partsToInsert isn't empty
 	if (partsToInsert.length > 0) {
