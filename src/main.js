@@ -35,38 +35,38 @@ const columnVals = [
 
 function getAllBarcodes() {
 
-  var sheet = SpreadsheetApp.getActiveSheet()
-  var data = sheet.getDataRange().getValues()
+	var sheet = SpreadsheetApp.getActiveSheet()
+	var data = sheet.getDataRange().getValues()
 
-  // create endpoint to find all parts
-  const findEndpoint = endpoint + "/action/find"
+	// create endpoint to find all parts
+	const findEndpoint = endpoint + "/action/find"
 
-  const payload = {
-    collection: collectionName,
-    database: databaseName,
-    dataSource: clusterName
-  }
+	const payload = {
+		collection: collectionName,
+		database: databaseName,
+		dataSource: clusterName
+	}
 
-  const options = {
-    method: 'post',
-    contentType: 'application/json',
-    payload: JSON.stringify(payload),
-    headers: { "api-key": apiKey }
-  }
-  const response = UrlFetchApp.fetch(findEndpoint, options);
+	const options = {
+		method: 'post',
+		contentType: 'application/json',
+		payload: JSON.stringify(payload),
+		headers: { "api-key": apiKey }
+	}
+	const response = UrlFetchApp.fetch(findEndpoint, options);
 
-  // parse response object to a JS Object
-  const parsedResponse = JSON.parse(response.getContentText())
-  
-  const allParts = parsedResponse.documents
-  
-  // add barcodes to a set for constant time lookup
-  const barcodes = new Set()
-  for (let i = 0; i < allParts.length; i++) {
-    barcodes.add(allParts[i].barcode)
-  }
+	// parse response object to a JS Object
+	const parsedResponse = JSON.parse(response.getContentText())
 
-  return barcodes
+	const allParts = parsedResponse.documents
+
+	// add barcodes to a set for constant time lookup
+	const barcodes = new Set()
+	for (let i = 0; i < allParts.length; i++) {
+		barcodes.add(allParts[i].barcode)
+	}
+
+	return barcodes
 
 }
 
@@ -190,32 +190,31 @@ function insertParts() {
 		}
 	}
 
-  const payload = {
-    documents: partsToInsert,
-    collection: collectionName,
-    database: databaseName,
-    dataSource: clusterName,
-  }
+	const payload = {
+		documents: partsToInsert,
+		collection: collectionName,
+		database: databaseName,
+		dataSource: clusterName,
+	}
 
-  const options = {
-    method: "post",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    headers: { "api-key": apiKey },
-  }
+	  const options = {
+		method: "post",
+		contentType: "application/json",
+		payload: JSON.stringify(payload),
+		headers: { "api-key": apiKey },
+	  }
   
-  // make sure partsToInsert isn't empty
-  if (partsToInsert.length > 0) {
-    const response = UrlFetchApp.fetch(insertEndpoint, options)    
-  }
-  
+	// make sure partsToInsert isn't empty
+	if (partsToInsert.length > 0) {
+		const response = UrlFetchApp.fetch(insertEndpoint, options)    
+	}
+
 	if (duplicateParts.length === 0) {
 		SpreadsheetApp.getUi().alert("Success! All parts added!")
-	} else {
-		SpreadsheetApp.getUi().alert(
-			"Duplicate parts in rows: " + duplicateParts + "\nNon-duplicate items were inserted successfully"
-		)
-	}   
+	} 
+	else {
+		SpreadsheetApp.getUi().alert("Duplicate parts in rows: " + duplicateParts + "\nNon-duplicate items were inserted successfully")
+	}
 }
 
 function clearSheet() {
