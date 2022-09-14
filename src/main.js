@@ -33,10 +33,48 @@ const columnVals = [
 	"Image URL",
 ]
 
+function getAllBarcodes() {
+
+  var sheet = SpreadsheetApp.getActiveSheet()
+  var data = sheet.getDataRange().getValues()
+
+  // create endpoint to find all parts
+  const findEndpoint = endpoint + "/action/find"
+
+  const payload = {
+    collection: collectionName,
+    database: databaseName,
+    dataSource: clusterName
+  }
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    headers: { "api-key": apiKey }
+  }
+  const response = UrlFetchApp.fetch(findEndpoint, options);
+
+  // parse response object to a JS Object
+  const parsedResponse = JSON.parse(response.getContentText())
+  
+  const allParts = parsedResponse.documents
+  
+  // add barcodes to a set for constant time lookup
+  const barcodes = new Set()
+  for (let i = 0; i < allParts.length; i++) {
+    barcodes.add(allParts[i].barcode)
+  }
+
+  return barcodes
+
+}
+
+
 function checkFormatting() {
 	const sheet = SpreadsheetApp.getActiveSheet()
 	const data = sheet.getDataRange().getValues()
-	Logger.log(data)
+
 	// loop through each row
 	for (let row = 1; row < data.length; row++) {
 		for (let col = 0; col < columnVals.length; col++) {
@@ -114,10 +152,12 @@ function findPart(partBarcode, apiKey) {
 
 function insertParts() {
 	// add insert action to endpoint
-	const insertEndpoint = endpoint + "/action/insertOne"
-
+	const insertEndpoint = endpoint + "/action/insertMany"
+	
+	const allBarcodes = getAllBarcodes()
 	const duplicateParts = []
-
+	const partsToInsert = []
+	
 	if (!checkFormatting()) {
 		return
 	}
@@ -141,38 +181,41 @@ function insertParts() {
 		document.type = data[row][3] ? "Consumable" : "Returnable"
 
 		// if part with matching barcode found
-		if (findPart(document.barcode, apiKey)) {
+		if (allBarcodes.has(document.barcode)) {
 			// push the row # + 1 to the array
 			duplicateParts.push(row + 1)
-
-			// skip current iteration and go to next loop iteration
-			continue
 		}
-
-		const payload = {
-			document,
-			collection: collectionName,
-			database: databaseName,
-			dataSource: clusterName,
+		else {
+			partsToInsert.push(document)
 		}
-
-		const options = {
-			method: "post",
-			contentType: "application/json",
-			payload: JSON.stringify(payload),
-			headers: { "api-key": apiKey },
-		}
-
-		const response = UrlFetchApp.fetch(insertEndpoint, options)
 	}
 
+  const payload = {
+    documents: partsToInsert,
+    collection: collectionName,
+    database: databaseName,
+    dataSource: clusterName,
+  }
+
+  const options = {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    headers: { "api-key": apiKey },
+  }
+  
+  // make sure partsToInsert isn't empty
+  if (partsToInsert.length > 0) {
+    const response = UrlFetchApp.fetch(insertEndpoint, options)    
+  }
+  
 	if (duplicateParts.length === 0) {
 		SpreadsheetApp.getUi().alert("Success! All parts added!")
 	} else {
 		SpreadsheetApp.getUi().alert(
 			"Duplicate parts in rows: " + duplicateParts + "\nNon-duplicate items were inserted successfully"
 		)
-	}
+	}   
 }
 
 function clearSheet() {
