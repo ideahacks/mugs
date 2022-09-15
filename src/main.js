@@ -336,47 +336,83 @@ function updateParts() {
 	}
 }
 
-function deleteParts() {
-	const sheet = SpreadsheetApp.getActiveSheet()
-	const data = sheet.getDataRange().getValues()
+function deleteAllParts() {
+	const deleteEndpoint = endpoint + "/action/deleteMany"
 
-	const invalidBarcodeRows = []
+	var ui = SpreadsheetApp.getUi()
+	var response = ui.alert('Are you sure you want to delete ALL parts from the database?', ui.ButtonSet.YES_NO)
 
-	const deleteEndpoint = endpoint + "/action/deleteOne"
-
-	for (let row = 1; row < data.length; row++) {
-		const barcodeToDelete = data[row][0]
-
-		if (!findPart(barcodeToDelete, apiKey)) {
-			invalidBarcodeRows.push(row + 1)
-			continue
-		}
-
-		// query to search via barcode
-		const query = { barcode: barcodeToDelete }
-
+	if (response == ui.Button.YES) {
+		// delete everything
 		const payload = {
-			filter: query,
+			filter: { },
 			collection: collectionName,
 			database: databaseName,
 			dataSource: clusterName,
 		}
-
 		const options = {
 			method: "post",
 			contentType: "application/json",
 			payload: JSON.stringify(payload),
 			headers: { "api-key": apiKey },
 		}
-
-		const response = UrlFetchApp.fetch(deleteEndpoint, options)
+		UrlFetchApp.fetch(deleteEndpoint, options)
+		ui.alert("All items deleted")
+	} 
+	else {
+		ui.alert("Nothing was deleted")  
 	}
+}
+
+function deleteParts() {
+	const sheet = SpreadsheetApp.getActiveSheet()
+	const data = sheet.getDataRange().getValues()
+
+	const invalidBarcodeRows = []
+
+	const deleteEndpoint = endpoint + "/action/deleteMany"
+
+	const allBarcodes = getAllBarcodes()
+
+	const barcodesToDelete = []
+
+	for (let row = 1; row < data.length; row++) {
+		const barcodeToDelete = data[row][0]
+
+		if (allBarcodes.has(barcodeToDelete)) {
+			barcodesToDelete.push(barcodeToDelete)
+		}
+		else {
+			invalidBarcodeRows.push(row + 1)
+		}
+
+	}
+
+	// query to search via barcodes
+	const query = { barcode: { '$in': barcodesToDelete } }
+
+	const payload = {
+		filter: query,
+		collection: collectionName,
+		database: databaseName,
+		dataSource: clusterName,
+	}
+
+	const options = {
+		method: "post",
+		contentType: "application/json",
+		payload: JSON.stringify(payload),
+		headers: { "api-key": apiKey },
+	}
+
+	const response = UrlFetchApp.fetch(deleteEndpoint, options)
 
 	if (invalidBarcodeRows.length === 0) {
 		SpreadsheetApp.getUi().alert("All parts with barcodes specified were deleted successfully")
-	} else {
+	} 
+	else {
 		SpreadsheetApp.getUi().alert(
-			"Invalid barcode in rows: " + invalidBarcodeRows + "\nAll other parts were deleted successfully"
+		"Invalid barcode in rows: " + invalidBarcodeRows + "\nAll other parts were deleted successfully"
 		)
 	}
 }
